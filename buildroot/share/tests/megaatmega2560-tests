@@ -1,0 +1,43 @@
+#!/usr/bin/env bash
+#
+# Build tests for AVR ATmega2560
+#
+
+# exit on first failure
+set -e
+
+#
+# Backup pins_TRIGORILLA_14.h
+#
+cp Marlin/src/pins/ramps/pins_TRIGORILLA_14.h Marlin/src/pins/ramps/pins_TRIGORILLA_14.h.backup
+
+#
+# Build with the default configurations
+#
+restore_configs
+exec_test $1 $2 "Default Configuration"
+
+#
+# Test with Anycubic TFT code disabled
+#
+opt_disable ANYCUBIC_TFT_MODEL ANYCUBIC_TFT_DEBUG ANYCUBIC_FILAMENT_RUNOUT_SENSOR
+exec_test $1 $2 "Test with Anycubic TFT code disabled"
+
+
+######## Example Configurations ##############
+#
+# Test Anycubic i3 Mega with BLtouch
+#
+restore_configs
+use_example_configs Anycubici3Mega/Ai3MBLtouch
+exec_test $1 $2 "Anycubic i3 Mega with BLtouch"
+#
+# Test Anycubic i3 Mega with RepRapDiscount FULL GRAPHIC Smart Controller
+#
+#restore_configs
+#use_example_configs Anycubici3Mega/Ai3M12864
+#exec_test $1 $2 "Anycubic i3 Mega with RepRapDiscount FULL GRAPHIC Smart Controller"
+#
+
+# clean up
+restore_configs
