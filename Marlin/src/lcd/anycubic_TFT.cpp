@@ -709,7 +709,7 @@ void AnycubicTFTClass::StateHandler()
           #endif
           ai3m_pause_state = 0;
           #ifdef ANYCUBIC_TFT_DEBUG
-            SERIAL_ECHOPAIR(" DEBUG: AI3M Pause State: ", ai3m_pause_state);
+            SERIAL_ECHOPAIR(" DEBUG: Pause State: ", ai3m_pause_state);
             SERIAL_EOL();
           #endif
         }

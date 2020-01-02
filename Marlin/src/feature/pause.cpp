@@ -549,7 +549,7 @@ void wait_for_confirmation(const bool is_reload/*=false*/, const int8_t max_beep
         if (AnycubicTFT.ai3m_pause_state < 3) {
           AnycubicTFT.ai3m_pause_state += 2;
           #ifdef ANYCUBIC_TFT_DEBUG
-            SERIAL_ECHOPAIR(" DEBUG: NTO - AI3M Pause State set to: ", AnycubicTFT.ai3m_pause_state);
+            SERIAL_ECHOPAIR(" DEBUG: NTO - Pause State set to: ", AnycubicTFT.ai3m_pause_state);
             SERIAL_EOL();
           #endif
           }
