@@ -79,6 +79,10 @@
   #define G29_RETURN(b) return;
 #endif
 
+#if ENABLED(ANYCUBIC_TFT_MODEL) && ENABLED(AUTO_BED_LEVELING_BILINEAR)
+  #include "../../../lcd/anycubic_serial.h"
+#endif
+
 /**
  * G29: Detailed Z probe, probes the bed at 3 or more points.
  *      Will fail if the printer has not been homed with G28.
@@ -934,6 +938,9 @@ G29_TYPE GcodeSuite::G29() {
         current_position.z -= bilinear_z_offset(current_position);
 
         if (DEBUGGING(LEVELING)) DEBUG_ECHOLNPAIR(" corrected Z:", current_position.z);
+
+        ANYCUBIC_SERIAL_PROTOCOLPGM("J25");//  auto leveling DONE
+        ANYCUBIC_SERIAL_ENTER();
       }
 
     #endif // ABL_PLANAR

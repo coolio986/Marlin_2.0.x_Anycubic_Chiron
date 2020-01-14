@@ -1239,56 +1239,73 @@ void AnycubicTFTClass::GetCommandFromTFT()
             case 29: // A29 Z PROBE OFFESET SET
               break;
 
-            case 30: // A30 assist leveling, the original function was canceled
+            case 30: 
+            {// A30 assist leveling, the original function was canceled
+              SERIAL_ECHOLNPAIR("TFT Serial Command: ", CodeValue());
               if(CodeSeen('S')) {
-                #ifdef ANYCUBIC_TFT_DEBUG
-                  SERIAL_ECHOLNPGM("TFT Entering level menue...");
-                #endif
-              } else if(CodeSeen('O')) {
-                #ifdef ANYCUBIC_TFT_DEBUG
-                  SERIAL_ECHOLNPGM("TFT Leveling started and movint to front left...");
-                #endif
-                queue.enqueue_now_P(PSTR("G91\nG1 Z10 F240\nG90\nG28\nG29\nG1 X20 Y20 F6000\nG1 Z0 F240"));
-              } else if(CodeSeen('T')) {
-                #ifdef ANYCUBIC_TFT_DEBUG
-                  SERIAL_ECHOLNPGM("TFT Level checkpoint front right...");
-                #endif
-                queue.enqueue_now_P(PSTR("G1 Z5 F240\nG1 X190 Y20 F6000\nG1 Z0 F240"));
-              } else if(CodeSeen('C')) {
-                #ifdef ANYCUBIC_TFT_DEBUG
-                  SERIAL_ECHOLNPGM("TFT Level checkpoint back right...");
-                #endif
-                queue.enqueue_now_P(PSTR("G1 Z5 F240\nG1 X190 Y190 F6000\nG1 Z0 F240"));
-              } else if(CodeSeen('Q')) {
-                #ifdef ANYCUBIC_TFT_DEBUG
-                  SERIAL_ECHOLNPGM("TFT Level checkpoint back right...");
-                #endif
-                queue.enqueue_now_P(PSTR("G1 Z5 F240\nG1 X190 Y20 F6000\nG1 Z0 F240"));
-              } else if(CodeSeen('H')) {
-                #ifdef ANYCUBIC_TFT_DEBUG
-                  SERIAL_ECHOLNPGM("TFT Level check no heating...");
-                #endif
+                queue.enqueue_now_P(PSTR("G91\nG1 Z10 F240\nG90"));
+                queue.enqueue_now_P(PSTR("\nG28"));
+                queue.enqueue_now_P(PSTR("\nG29"));
+              } //else if(CodeSeen('O')) {
+              //   #ifdef ANYCUBIC_TFT_DEBUG
+              //     SERIAL_ECHOLNPGM("TFT Leveling started and movint to front left...");
+              //   #endif
+              //   queue.enqueue_now_P(PSTR("G91\nG1 Z10 F240\nG90\nG28\nG29\nG1 X20 Y20 F6000\nG1 Z0 F240"));
+              // } else if(CodeSeen('T')) {
+              //   #ifdef ANYCUBIC_TFT_DEBUG
+              //     SERIAL_ECHOLNPGM("TFT Level checkpoint front right...");
+              //   #endif
+              //   queue.enqueue_now_P(PSTR("G1 Z5 F240\nG1 X190 Y20 F6000\nG1 Z0 F240"));
+              // } else if(CodeSeen('C')) {
+              //   #ifdef ANYCUBIC_TFT_DEBUG
+              //     SERIAL_ECHOLNPGM("TFT Level checkpoint back right...");
+              //   #endif
+              //   queue.enqueue_now_P(PSTR("G1 Z5 F240\nG1 X190 Y190 F6000\nG1 Z0 F240"));
+              // } else if(CodeSeen('Q')) {
+              //   #ifdef ANYCUBIC_TFT_DEBUG
+              //     SERIAL_ECHOLNPGM("TFT Level checkpoint back right...");
+              //   #endif
+              //   queue.enqueue_now_P(PSTR("G1 Z5 F240\nG1 X190 Y20 F6000\nG1 Z0 F240"));
+              // } else if(CodeSeen('H')) {
+              //   #ifdef ANYCUBIC_TFT_DEBUG
+              //     SERIAL_ECHOLNPGM("TFT Level check no heating...");
+              //   #endif
+              //   //queue.enqueue_now_P(PSTR("... TBD ..."));
+              //   ANYCUBIC_SERIAL_PROTOCOLPGM("J22"); // J22 Test print done
+              //   ANYCUBIC_SERIAL_ENTER();
+              //   #ifdef ANYCUBIC_TFT_DEBUG
+              //     SERIAL_ECHOLNPGM("TFT Serial Debug: Leveling print test done... J22");
+              //   #endif
+              // } else if(CodeSeen('L')) {
+              //   #ifdef ANYCUBIC_TFT_DEBUG
+              //     SERIAL_ECHOLNPGM("TFT Level check heating...");
+              //   #endif
                 //queue.enqueue_now_P(PSTR("... TBD ..."));
-                ANYCUBIC_SERIAL_PROTOCOLPGM("J22"); // J22 Test print done
-                ANYCUBIC_SERIAL_ENTER();
-                #ifdef ANYCUBIC_TFT_DEBUG
-                  SERIAL_ECHOLNPGM("TFT Serial Debug: Leveling print test done... J22");
-                #endif
-              } else if(CodeSeen('L')) {
-                #ifdef ANYCUBIC_TFT_DEBUG
-                  SERIAL_ECHOLNPGM("TFT Level check heating...");
-                #endif
-                //queue.enqueue_now_P(PSTR("... TBD ..."));
-                ANYCUBIC_SERIAL_PROTOCOLPGM("J22"); // J22 Test print done
-                ANYCUBIC_SERIAL_ENTER();
-                #ifdef ANYCUBIC_TFT_DEBUG
-                  SERIAL_ECHOLNPGM("TFT Serial Debug: Leveling print test with heating done... J22");
-                #endif
-              }
+              //   ANYCUBIC_SERIAL_PROTOCOLPGM("J22"); // J22 Test print done
+              //   ANYCUBIC_SERIAL_ENTER();
+              //   #ifdef ANYCUBIC_TFT_DEBUG
+              //     SERIAL_ECHOLNPGM("TFT Serial Debug: Leveling print test with heating done... J22");
+              //   #endif
+              // }
+
+              if((planner.movesplanned())||(card.isPrinting())) 
+                {
+                  ANYCUBIC_SERIAL_PROTOCOLPGM("J24");// forbid auto leveling
+                  ANYCUBIC_SERIAL_ENTER();                          
+                }
+                else 
+                {
+                  #ifdef ANYCUBIC_TFT_DEBUG
+                    SERIAL_ECHOLNPGM("TFT Entering level menu...");
+                  #endif
+                  ANYCUBIC_SERIAL_PROTOCOLPGM("J26");//start auto leveling
+                  ANYCUBIC_SERIAL_ENTER();                                  
+                } 
               ANYCUBIC_SERIAL_SUCC_START;
               ANYCUBIC_SERIAL_ENTER();
 
               break;
+            }
             case 31: // A31 zoffset
               if((!planner.movesplanned())&&(TFTstate!=ANYCUBIC_TFT_STATE_SDPAUSE) && (TFTstate!=ANYCUBIC_TFT_STATE_SDOUTAGE))
               {
@@ -1300,12 +1317,12 @@ void AnycubicTFTClass::GetCommandFromTFT()
 
                   if(CodeSeen('S')) {
                     ANYCUBIC_SERIAL_PROTOCOLPGM("A9V ");
-                    ANYCUBIC_SERIAL_PROTOCOL(itostr3(int(zprobe_zoffset*100.00 + 0.5)));
+                    ANYCUBIC_SERIAL_PROTOCOL(itostr3(int(probe_offset.x*100.00 + 0.5)));
                     ANYCUBIC_SERIAL_ENTER();
                     #ifdef ANYCUBIC_TFT_DEBUG
                       SERIAL_ECHOPGM("TFT sending current z-probe offset data... <");
                       SERIAL_ECHOPGM("A9V ");
-                      SERIAL_ECHO(itostr3(int(zprobe_zoffset*100.00 + 0.5)));
+                      SERIAL_ECHO(itostr3(int(probe_offset.x*100.00 + 0.5)));
                       SERIAL_ECHOLNPGM(">");
                     #endif
                   }
