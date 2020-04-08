@@ -37,12 +37,22 @@
 #include "../module/stepper.h"
 #include "../module/temperature.h"
 #include "../sd/cardreader.h"
+#include "../gcode/parser.h"
+#include "../module/configuration_store.h"
 
 #ifdef ANYCUBIC_TFT_MODEL
 #include "anycubic_TFT.h"
 #include "anycubic_serial.h"
 
+#if HAS_LEVELING
+  #include "../feature/bedlevel/bedlevel.h"
+#endif
+
+bed_mesh_t temp_z_values;
+
 char _conv[8];
+
+float tempZ = 0.0;
 
 char *itostr2(const uint8_t &x)
 {
@@ -380,13 +390,12 @@ void AnycubicTFTClass::ParkAfterStop(){
       SERIAL_ECHOLNPGM("DEBUG: SDSTOP: Park Z");
     #endif
     // move bed and hotend to park position
-    do_blocking_move_to_xy((X_MIN_POS + 10), (Y_MAX_POS - 10), 100);
+    do_blocking_move_to_x((X_MIN_POS + 10), 100.0);
     #ifdef ANYCUBIC_TFT_DEBUG
       SERIAL_ECHOLNPGM("DEBUG: SDSTOP: Park XY");
     #endif
   }
   queue.enqueue_now_P(PSTR("M84")); // disable stepper motors
-  queue.enqueue_now_P(PSTR("M27")); // force report of SD status
   ai3m_pause_state = 0;
   #ifdef ANYCUBIC_TFT_DEBUG
     SERIAL_ECHOPAIR(" DEBUG: AI3M Pause State: ", ai3m_pause_state);
@@ -883,22 +892,25 @@ void AnycubicTFTClass::GetCommandFromTFT()
             break;
           case 7://A7 GET PRINTING TIME
             {
-              ANYCUBIC_SERIAL_PROTOCOLPGM("A7V ");
-              if(starttime != 0) // print time
+              if (card.isPrinting())
               {
-                uint16_t time = millis()/60000 - starttime/60000;
-                ANYCUBIC_SERIAL_PROTOCOL(itostr2(time/60));
-                ANYCUBIC_SERIAL_SPACE();
-                ANYCUBIC_SERIAL_PROTOCOLPGM("H");
-                ANYCUBIC_SERIAL_SPACE();
-                ANYCUBIC_SERIAL_PROTOCOL(itostr2(time%60));
-                ANYCUBIC_SERIAL_SPACE();
-                ANYCUBIC_SERIAL_PROTOCOLPGM("M");
-              }else{
-                ANYCUBIC_SERIAL_SPACE();
-                ANYCUBIC_SERIAL_PROTOCOLPGM("999:999");
+                ANYCUBIC_SERIAL_PROTOCOLPGM("A7V ");
+                if(starttime != 0) // print time
+                {
+                  uint16_t time = millis()/60000 - starttime/60000;
+                  ANYCUBIC_SERIAL_PROTOCOL(itostr2(time/60));
+                  ANYCUBIC_SERIAL_SPACE();
+                  ANYCUBIC_SERIAL_PROTOCOLPGM("H");
+                  ANYCUBIC_SERIAL_SPACE();
+                  ANYCUBIC_SERIAL_PROTOCOL(itostr2(time%60));
+                  ANYCUBIC_SERIAL_SPACE();
+                  ANYCUBIC_SERIAL_PROTOCOLPGM("M");
+                }else{
+                  ANYCUBIC_SERIAL_SPACE();
+                  ANYCUBIC_SERIAL_PROTOCOLPGM("999:999");
+                }
+                ANYCUBIC_SERIAL_ENTER();
               }
-              ANYCUBIC_SERIAL_ENTER();
 
             break;
           }
@@ -1237,6 +1249,27 @@ void AnycubicTFTClass::GetCommandFromTFT()
             break;
           #ifndef BLTOUCH
             case 29: // A29 Z PROBE OFFESET SET
+            if((!planner.movesplanned())&&(TFTstate!=ANYCUBIC_TFT_STATE_SDPAUSE) && (TFTstate!=ANYCUBIC_TFT_STATE_SDOUTAGE))
+              {
+                #if HAS_BED_PROBE
+                  uint16_t x = 0;
+                  uint16_t y = 0;
+                  if(CodeSeen('X')) { x = CodeValue(); }
+                  if(CodeSeen('Y')) { y = CodeValue(); }
+
+                  ANYCUBIC_SERIAL_PROTOCOLPGM("A29V ");
+                  ANYCUBIC_SERIAL_PROTOCOL_F( LINEAR_UNIT(z_values[x][y]) * 100, 3 );
+                  ANYCUBIC_SERIAL_ENTER();
+                  #ifdef ANYCUBIC_TFT_DEBUG
+                    
+                    SERIAL_ECHOPGM("A29V ");
+                    SERIAL_ECHO_F( LINEAR_UNIT(z_values[x][y]), 5 );
+                    SERIAL_ECHOLNPGM(">");
+                  #endif
+
+                #endif
+
+              }
               break;
 
             case 30: 
@@ -1311,28 +1344,56 @@ void AnycubicTFTClass::GetCommandFromTFT()
               {
                 #if HAS_BED_PROBE
                   char value[30];
-                  char *s_zoffset;
-                  //if((current_position[Z_AXIS]<10))
-                  //  z_offset_auto_test();
 
                   if(CodeSeen('S')) {
-                    ANYCUBIC_SERIAL_PROTOCOLPGM("A9V ");
-                    ANYCUBIC_SERIAL_PROTOCOL(itostr3(int(probe_offset.x*100.00 + 0.5)));
+                    
+                    float value = constrain(CodeValue(), -1.0, 1.0);
+                    tempZ += value;
+                    for (uint8_t x = 0; x < GRID_MAX_POINTS_X; x++)
+                      for (uint8_t y = 0; y < GRID_MAX_POINTS_Y; y++) {
+                        z_values[x][y] += value;
+                      }
+                    
+                    ANYCUBIC_SERIAL_PROTOCOLPGM("A31V ");
+                    ANYCUBIC_SERIAL_PROTOCOL(tempZ);
                     ANYCUBIC_SERIAL_ENTER();
+
                     #ifdef ANYCUBIC_TFT_DEBUG
                       SERIAL_ECHOPGM("TFT sending current z-probe offset data... <");
-                      SERIAL_ECHOPGM("A9V ");
-                      SERIAL_ECHO(itostr3(int(probe_offset.x*100.00 + 0.5)));
+                      SERIAL_ECHOPGM("A31V ");
+                      SERIAL_ECHO(tempZ);
                       SERIAL_ECHOLNPGM(">");
                     #endif
+                    refresh_bed_level();
+                  }
+                  if(CodeSeen('G'))
+                  {
+                    tempZ = probe_offset.z;
+                    ANYCUBIC_SERIAL_PROTOCOLPGM("A31V ");
+                    ANYCUBIC_SERIAL_PROTOCOL(tempZ);
+                    ANYCUBIC_SERIAL_ENTER();
+                    #ifdef ANYCUBIC_TFT_DEBUG
+                      SERIAL_ECHOPGM("A31V ");
+                      SERIAL_ECHO(tempZ);
+                      SERIAL_ECHOLNPGM(">");
+                    #endif
+                    for (uint8_t x = 0; x < GRID_MAX_POINTS_X; x++)
+                      for (uint8_t y = 0; y < GRID_MAX_POINTS_Y; y++) {
+                        temp_z_values[x][y] = z_values[x][y];
+                      }
                   }
                   if(CodeSeen('D'))
                   {
-                    s_zoffset=ftostr32(float(CodeValue())/100.0);
-                    sprintf_P(value,PSTR("M851 Z"));
-                    strcat(value,s_zoffset);
-                    queue.enqueue_now_P(value); // Apply Z-Probe offset
-                    queue.enqueue_now_P(PSTR("M500")); // Save to EEPROM
+                    SERIAL_ECHOPGM("M851 Z ");
+                    SERIAL_ECHO(probe_offset.z);
+                    SERIAL_ECHOLNPGM(">");
+                    for (uint8_t x = 0; x < GRID_MAX_POINTS_X; x++)
+                      for (uint8_t y = 0; y < GRID_MAX_POINTS_Y; y++) {
+                        z_values[x][y] = temp_z_values[x][y];
+                      }
+                      probe_offset.z = tempZ;
+                      queue.enqueue_now_P(PSTR("M420 S1"));
+                      settings.save();
                   }
                 #endif
               }
@@ -1355,6 +1416,37 @@ void AnycubicTFTClass::GetCommandFromTFT()
               ANYCUBIC_SERIAL_PROTOCOLPGM(MSG_MY_VERSION);
               ANYCUBIC_SERIAL_ENTER();
             }
+            break;
+          case 34: // A33 get version info
+          {
+            uint16_t x = 0;
+            uint16_t y = 0;
+            if(CodeSeen('X')) { x = constrain(CodeValue(), 0, GRID_MAX_POINTS_X); }
+            if(CodeSeen('Y')) { y = constrain(CodeValue(), 0, GRID_MAX_POINTS_Y); }
+            if(CodeSeen('V'))
+            {
+              temp_z_values[x][y] = (float)constrain(CodeValue()/100,-10,10);
+              refresh_bed_level();
+            }
+            if(CodeSeen('S'))
+            {
+              refresh_bed_level();
+              //set_bed_leveling_enabled(true);
+              queue.enqueue_now_P(PSTR("M420 S1"));
+              settings.save();
+            }
+            if(CodeSeen('C'))
+            {
+              
+              for (uint8_t x = 0; x < GRID_MAX_POINTS_X; x++)
+                for (uint8_t y = 0; y < GRID_MAX_POINTS_Y; y++) {
+                  temp_z_values[x][y] = NAN;
+                }
+              refresh_bed_level();
+              set_bed_leveling_enabled(true);
+            }
+
+          }
             break;
           default: break;
         }
@@ -1429,6 +1521,8 @@ void AnycubicTFTClass::BedHeatingDone()
     SERIAL_ECHOLNPGM("TFT Serial Debug: Bed heating is done... J09");
   #endif
 }
+
+
 
 
 AnycubicTFTClass AnycubicTFT;

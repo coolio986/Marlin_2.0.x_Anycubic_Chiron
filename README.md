@@ -29,6 +29,7 @@ While the Chiron is a great printer for its price and produces fantastic results
   - `T<temperature>`:   Target bed temperature (min 15°C), 30°C if not specified (do not set this under room temperature)
   - `S<fan speed>`:   Fan speed between 0 and 255, full speed if not specified
   - e.g. `M888 S191 T25`: run the fan at 75% until the bed has cooled down to 25°C
+- Adjusting bed leveling settings via "ADVANCE SETTING" now works
 
 
 ## Known issues:
@@ -36,7 +37,6 @@ While the Chiron is a great printer for its price and produces fantastic results
 - Power outage support is not included
 - Estimated print times from your slicer might be slightly off.
 - Special characters on any file or folders name on the SD card will cause the file menu to freeze. Simply replace or remove every special character (Chinese, Arabic, Russian, accents, German & Scandinavian umlauts, ...) from the name. Symbols like dashes or underscores are no problem.
-- Adjusting bed leveling settings via "ADVANCE SETTING" doesn't work yet, WIP
 **Important note: On the SD card that comes with the printer there is a folder with Chinese characters in it by default. Please rename or remove it.**
 
 ## How to flash this?

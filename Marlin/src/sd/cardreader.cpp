@@ -1049,7 +1049,7 @@ void CardReader::printingHasFinished() {
     #endif
 
     #if ENABLED(SD_FINISHED_STEPPERRELEASE) && defined(SD_FINISHED_RELEASECOMMAND)
-      planner.finish_and_disable();
+      //planner.finish_and_disable();
     #endif
 
     print_job_timer.stop();

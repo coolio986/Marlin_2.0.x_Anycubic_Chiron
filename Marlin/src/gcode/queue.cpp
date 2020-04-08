@@ -526,7 +526,7 @@ void GCodeQueue::get_serial_commands() {
       ) {
         if (card_eof) {
 
-          card.printingHasFinished();
+          //card.printingHasFinished();
 
           if (IS_SD_PRINTING())
             sd_count = 0; // If a sub-file was printing, continue from call point
@@ -545,6 +545,7 @@ void GCodeQueue::get_serial_commands() {
               #endif
             #endif // PRINTER_EVENT_LEDS
           }
+          card.printingHasFinished();
         }
         else if (n == -1)
           SERIAL_ERROR_MSG(MSG_SD_ERR_READ);

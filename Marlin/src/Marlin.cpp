@@ -1188,9 +1188,6 @@ void loop() {
 
     endstops.event_handler();
     idle();
-    #ifdef ANYCUBIC_TFT_MODEL
-      AnycubicTFT.CommandScan();
-    #endif
 
   }
 }
