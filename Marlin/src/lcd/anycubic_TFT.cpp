@@ -28,6 +28,7 @@
 #include "../core/macros.h"
 #include "../core/serial.h"
 #include "../gcode/queue.h"
+#include "../feature/bedlevel/mbl/mesh_bed_leveling.h"
 #include "../feature/emergency_parser.h"
 #include "../feature/pause.h"
 #include "../inc/MarlinConfig.h"
@@ -1258,12 +1259,12 @@ void AnycubicTFTClass::GetCommandFromTFT()
                   if(CodeSeen('Y')) { y = CodeValue(); }
 
                   ANYCUBIC_SERIAL_PROTOCOLPGM("A29V ");
-                  ANYCUBIC_SERIAL_PROTOCOL_F( LINEAR_UNIT(z_values[x][y]) * 100, 3 );
+                  ANYCUBIC_SERIAL_PROTOCOL_F( LINEAR_UNIT(mbl.z_values[x][y]) * 100, 3 );
                   ANYCUBIC_SERIAL_ENTER();
                   #ifdef ANYCUBIC_TFT_DEBUG
                     
                     SERIAL_ECHOPGM("A29V ");
-                    SERIAL_ECHO_F( LINEAR_UNIT(z_values[x][y]), 5 );
+                    SERIAL_ECHO_F( LINEAR_UNIT(mbl.z_values[x][y]), 5 );
                     SERIAL_ECHOLNPGM(">");
                   #endif
 
@@ -1351,7 +1352,7 @@ void AnycubicTFTClass::GetCommandFromTFT()
                     tempZ += value;
                     for (uint8_t x = 0; x < GRID_MAX_POINTS_X; x++)
                       for (uint8_t y = 0; y < GRID_MAX_POINTS_Y; y++) {
-                        z_values[x][y] += value;
+                        mbl.z_values[x][y] += value;
                       }
                     
                     ANYCUBIC_SERIAL_PROTOCOLPGM("A31V ");
@@ -1364,7 +1365,7 @@ void AnycubicTFTClass::GetCommandFromTFT()
                       SERIAL_ECHO(tempZ);
                       SERIAL_ECHOLNPGM(">");
                     #endif
-                    refresh_bed_level();
+                    reset_bed_level();
                   }
                   if(CodeSeen('G'))
                   {
@@ -1379,7 +1380,7 @@ void AnycubicTFTClass::GetCommandFromTFT()
                     #endif
                     for (uint8_t x = 0; x < GRID_MAX_POINTS_X; x++)
                       for (uint8_t y = 0; y < GRID_MAX_POINTS_Y; y++) {
-                        temp_z_values[x][y] = z_values[x][y];
+                        temp_z_values[x][y] = mbl.z_values[x][y];
                       }
                   }
                   if(CodeSeen('D'))
@@ -1389,7 +1390,7 @@ void AnycubicTFTClass::GetCommandFromTFT()
                     SERIAL_ECHOLNPGM(">");
                     for (uint8_t x = 0; x < GRID_MAX_POINTS_X; x++)
                       for (uint8_t y = 0; y < GRID_MAX_POINTS_Y; y++) {
-                        z_values[x][y] = temp_z_values[x][y];
+                        mbl.z_values[x][y] = temp_z_values[x][y];
                       }
                       probe_offset.z = tempZ;
                       queue.enqueue_now_P(PSTR("M420 S1"));
@@ -1426,11 +1427,11 @@ void AnycubicTFTClass::GetCommandFromTFT()
             if(CodeSeen('V'))
             {
               temp_z_values[x][y] = (float)constrain(CodeValue()/100,-10,10);
-              refresh_bed_level();
+              reset_bed_level();
             }
             if(CodeSeen('S'))
             {
-              refresh_bed_level();
+              reset_bed_level();
               //set_bed_leveling_enabled(true);
               queue.enqueue_now_P(PSTR("M420 S1"));
               settings.save();
@@ -1442,7 +1443,7 @@ void AnycubicTFTClass::GetCommandFromTFT()
                 for (uint8_t y = 0; y < GRID_MAX_POINTS_Y; y++) {
                   temp_z_values[x][y] = NAN;
                 }
-              refresh_bed_level();
+              reset_bed_level();
               set_bed_leveling_enabled(true);
             }
 
