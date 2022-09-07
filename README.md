@@ -48,6 +48,7 @@ If you have stock drivers in your printer, make sure to set the correct motor di
 - Browse into the Marlin folder and run `Marlin.ino`
 - In the IDE, under `Tools -> Board` select `Genuino Mega 2560` and `ATmega2560`
 - Open Marlin.ino in the Marlin directory of this repo
+- Make sure to have the library `TMCStepper` installed (via the Library Manager)
 - Customize if needed
   - For stock motor directions look at comments for `INVERT_X_DIR`, `INVERT_Y_DIR`, `INVERT_Z_DIR`, `INVERT_E0_DIR`, and `INVERT_E1_DIR` definitions in `Configuration.h`
   - For stock motor type look at comments for `X_DRIVER_TYPE`, `Y_DRIVER_TYPE`, `Z_DRIVER_TYPE`, `Z2_DRIVER_TYPE`, `E0_DRIVER_TYPE`, and `E1_DRIVER_TYPE` definitions in `Configuration.h`
